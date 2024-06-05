@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -24,11 +25,13 @@ public class MurexMonitorTask implements AMonitorTaskRunnable {
     private static final Logger logger = ExtensionsLoggerFactory.getLogger(MurexMonitor.class);
     private MonitorContextConfiguration monitorContextConfiguration;
     private String scriptPath;
+    private String command;
     private Map<String, ?> configYml = Maps.newHashMap();
 
-    public MurexMonitorTask(MonitorContextConfiguration monitorContextConfiguration, String scriptPath) {
+    public MurexMonitorTask(MonitorContextConfiguration monitorContextConfiguration, String scriptPath, String command) {
         this.monitorContextConfiguration = monitorContextConfiguration;
         this.scriptPath = scriptPath;
+        this.command = command;
     }
 
     @Override
@@ -79,22 +82,28 @@ public class MurexMonitorTask implements AMonitorTaskRunnable {
     private List<MurexEvent> runScriptAndParseOutput() {
         List<MurexEvent> events = new ArrayList<>();
         String nodeName = getHostName();
-        ProcessBuilder processBuilder = new ProcessBuilder("./launchmxj.app", "-s");
+        List<String> commandParts = Arrays.asList(command.split("\\s+"));
+        ProcessBuilder processBuilder = new ProcessBuilder(commandParts);
+
         processBuilder.directory(new java.io.File(scriptPath));
         processBuilder.redirectErrorStream(true);
+        boolean foundRunningServices = false;
 
         try {
             Process process = processBuilder.start();
+            logger.info("The script with command " + commandParts + " in directory " + scriptPath + " was successfully launched.");
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             boolean startProcessing = false;
             String previousLine = null;
+
 
             while ((line = reader.readLine()) != null) {
                 if (!startProcessing) {
                     // Skip lines until the line containing "Found running service(s) :" is found
                     if (line.contains("Found running service(s) :")) {
                         startProcessing = true; // Start processing from the next line
+
                     }
                     continue;
                 }
@@ -106,6 +115,7 @@ public class MurexMonitorTask implements AMonitorTaskRunnable {
                     MurexEvent event = parseMurexEvent(combinedLine, nodeName);
                     if (event != null) {
                         events.add(event);
+                        foundRunningServices = true;
                     }
                     previousLine = null;
                 } else {
@@ -114,10 +124,21 @@ public class MurexMonitorTask implements AMonitorTaskRunnable {
             }
 
 
-            process.waitFor();
+            int exitCode = process.waitFor();
+
+            if (foundRunningServices) {
+                logger.info("Found running services.");
+            }
+
+            if (exitCode == 0) {
+                logger.info("The script completed successfully.");
+            } else {
+                logger.error("The script exited with error code: " + exitCode);
+            }
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            logger.error("An error occurred while running the script.", e);
         }
+
 
         return events;
     }

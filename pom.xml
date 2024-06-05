@@ -6,7 +6,7 @@
 
     <groupId>com.appdynamics.monitors</groupId>
     <artifactId>murex-availability-extension</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>2.0.0</version>
     <name>Murex Monitor</name>
     <description>Run the script and report Custom Analitycs events on which backend Murex services are currently up on each of the relevant hosts used for providing Murex services.</description>
 

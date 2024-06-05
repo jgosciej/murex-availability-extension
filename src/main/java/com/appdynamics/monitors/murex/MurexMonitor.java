@@ -39,8 +39,21 @@ public class MurexMonitor extends ABaseMonitor {
 
     @Override
     protected void doRun(TasksExecutionServiceProvider taskExecutor) {
+
         String scriptPath = (String) configYml.get("scriptPath");
-        MurexMonitorTask task = new MurexMonitorTask(monitorContextConfiguration, scriptPath);
+        if (scriptPath == null)
+        {
+            logger.error("Script Path is invalid");
+        }
+
+        String command = (String) configYml.get("command");
+
+        if (command == null)
+        {
+            logger.error("Command to execute the script is invalid");
+        }
+
+        MurexMonitorTask task = new MurexMonitorTask(monitorContextConfiguration, scriptPath, command);
         taskExecutor.submit("Murex Task", task);
 
     }

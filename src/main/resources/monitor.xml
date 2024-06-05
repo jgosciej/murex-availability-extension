@@ -24,7 +24,6 @@
 		<task-arguments>
 			<argument name="config-file" is-required="true" default-value="monitors/MurexMonitor/config.yml" />
 		</task-arguments>
-            
         <java-task>
             <classpath>murex-availability-extension.jar</classpath>
             <impl-class>com.appdynamics.monitors.murex.MurexMonitor</impl-class>
